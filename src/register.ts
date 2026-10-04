@@ -2,20 +2,22 @@ import { scramble, toast } from "./effects";
 
 /**
  * Three-step registration flow (frontend only — nothing is sent to a server).
- * The player ID card on the right updates live as the form is filled in.
+ * The event pass on the right updates live as the form is filled in.
  * The finished registration is kept in localStorage so a refresh doesn't lose it.
  */
 
 const CLASS_COLORS: Record<string, string> = {
-  Netrunner: "#00f0ff",
-  Chainbreaker: "#ff2bd6",
-  Ghost: "#b6ff3b",
-  Architect: "#ffb800",
-  Terraformer: "#4dffb8",
-  Wildcard: "#a77bff",
+  "AI & ML": "#00ff66",
+  Web3: "#c6ff00",
+  Cybersecurity: "#39ff14",
+  "Web & Mobile": "#a8ff60",
+  "Climate Tech": "#4dffb8",
+  "Open Innovation": "#00e5a0",
 };
 
-const STORAGE_KEY = "tlc-player";
+const LEVELS = ["Beginner", "Intermediate", "Advanced"];
+
+const STORAGE_KEY = "tlc-registration";
 
 function hash(str: string) {
   // tiny FNV-1a – good enough to make a stable fake "commit hash"
@@ -40,7 +42,7 @@ export function initRegister(onClassChange: (hex: string) => void) {
 
   const card = document.getElementById("idCard")!;
   const idName = document.getElementById("idName")!;
-  const idTag = document.getElementById("idTag")!;
+  const idEmail = document.getElementById("idEmail")!;
   const idOrg = document.getElementById("idOrg")!;
   const idClass = document.getElementById("idClass")!;
   const idLvl = document.getElementById("idLvl")!;
@@ -87,21 +89,21 @@ export function initRegister(onClassChange: (hex: string) => void) {
 
   let lastSeed = "";
   function updateCard() {
-    const name = val("name") || "UNKNOWN PLAYER";
-    const tag = val("tag");
-    const cls = val("class") || "Netrunner";
-    const color = CLASS_COLORS[cls] ?? "#00f0ff";
+    const name = val("name") || "YOUR NAME";
+    const cls = val("class") || "AI & ML";
+    const color = CLASS_COLORS[cls] ?? "#00ff66";
+    const level = LEVELS[Number(val("level")) - 1] ?? "Intermediate";
     idName.textContent = name.toUpperCase();
-    idTag.textContent = `@${tag || "null"}`;
-    idOrg.textContent = (val("org") || "NO GUILD").toUpperCase();
+    idEmail.textContent = val("email") || "you@example.com";
+    idOrg.textContent = (val("org") || "YOUR COLLEGE").toUpperCase();
     idClass.textContent = cls.toUpperCase();
-    idLvl.textContent = val("level").padStart(2, "0");
-    lvlOut.textContent = `LVL ${val("level")}`;
+    idLvl.textContent = level.toUpperCase();
+    lvlOut.textContent = level;
     const squad = val("squad");
-    idSquad.textContent = squad.startsWith("Solo") ? "SOLO" : `${squad} PAX`;
+    idSquad.textContent = squad.startsWith("Solo") ? "SOLO" : `${squad} PEOPLE`;
     card.style.setProperty("--c", color);
 
-    const seed = `${val("name")}|${tag}|${val("email")}`;
+    const seed = `${val("name")}|${val("email")}`;
     if (seed !== lastSeed) {
       lastSeed = seed;
       idHash.textContent = `#${hash(seed).slice(0, 7)}`;
@@ -113,7 +115,7 @@ export function initRegister(onClassChange: (hex: string) => void) {
   form.addEventListener("input", (e) => {
     updateCard();
     const t = e.target as HTMLInputElement;
-    if (t.name === "class") onClassChange(CLASS_COLORS[t.value] ?? "#00f0ff");
+    if (t.name === "class") onClassChange(CLASS_COLORS[t.value] ?? "#00ff66");
     const f = t.closest(".field");
     if (f?.classList.contains("has-error")) validateInput(t);
   });
@@ -122,8 +124,7 @@ export function initRegister(onClassChange: (hex: string) => void) {
   function message(input: HTMLInputElement) {
     const v = input.validity;
     if (v.valueMissing) return "// field required";
-    if (v.typeMismatch) return "// invalid comms address";
-    if (v.patternMismatch) return "// 3-16 chars: letters, numbers, _ or -";
+    if (v.typeMismatch) return "// enter a valid email address";
     if (v.tooShort) return `// min ${input.minLength} characters`;
     return "";
   }
@@ -165,22 +166,21 @@ export function initRegister(onClassChange: (hex: string) => void) {
     nextBtn.querySelector("span")!.textContent = i === steps.length - 1 ? "Push Commit ⏎" : "Next ▶";
     if (i === steps.length - 1) {
       confirmBox.textContent = [
-        `$ git commit -m "register ${val("tag")}"`,
+        `$ git commit -m "register ${val("name")}"`,
         ``,
-        `  player : ${val("name")}`,
-        `  tag    : @${val("tag")}`,
-        `  comms  : ${val("email")}`,
-        `  guild  : ${val("org")}`,
-        `  class  : ${val("class")}`,
-        `  level  : ${val("level")}/5`,
-        `  squad  : ${val("squad")}`,
+        `  name       : ${val("name")}`,
+        `  email      : ${val("email")}`,
+        `  college    : ${val("org")}`,
+        `  track      : ${val("class")}`,
+        `  experience : ${LEVELS[Number(val("level")) - 1]}`,
+        `  team       : ${val("squad")}`,
       ].join("\n");
     }
   }
 
   nextBtn.addEventListener("click", () => {
     if (step === 0 && !validateStep(0)) {
-      toast("✖ Fix the highlighted fields, player.");
+      toast("✖ Please fix the highlighted fields.");
       return;
     }
     if (step < steps.length - 1) {
@@ -219,7 +219,7 @@ export function initRegister(onClassChange: (hex: string) => void) {
       }
       showDone(full);
       nextBtn.disabled = false;
-      toast("✔ Commit pushed. See you on the grid.");
+      toast("✔ Registration complete. See you there!");
     }, 1100);
   }
 
@@ -259,7 +259,7 @@ export function initRegister(onClassChange: (hex: string) => void) {
       if (radio) radio.checked = true;
       updateCard();
       onClassChange(CLASS_COLORS[cls]);
-      toast(`▶ ${cls.toUpperCase()} locked in. Continue to registration ↓`);
+      toast(`✔ ${cls} selected. Continue to registration below.`);
     });
   });
 

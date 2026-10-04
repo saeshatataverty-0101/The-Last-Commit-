@@ -3,12 +3,12 @@
 const LINES: [string, string?][] = [
   ["> initializing LAST_COMMIT.OS ..."],
   ["> mounting /dev/global-repository", "ok"],
-  ["> loading shaders [core, grid, particles]", "ok"],
-  ["> syncing 1,204 player profiles", "ok"],
+  ["> loading commit graph [main + 4 branches]", "ok"],
+  ["> syncing 1,204 participant profiles", "ok"],
   ["> WARNING: repository freeze scheduled in 48:00:00", "err"],
-  ["> decrypting mission briefing", "ok"],
+  ["> loading event details", "ok"],
   ["> git checkout -b the-last-commit"],
-  ["> all systems nominal. welcome, player.", "ok"],
+  ["> all systems ready. welcome.", "ok"],
 ];
 
 export function runBoot(): Promise<void> {

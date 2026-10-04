@@ -3,8 +3,8 @@
 > Year 2099. Every line of code humanity ever wrote lives in one Global Repository.
 > At 00:00 on the final night it freezes forever. You have 48 hours to push the last commit.
 
-A gaming / cyberpunk-styled website for the fictional hackathon **"The Last Commit"**: frontend only, with a
-real-time 3D background, custom cursor interactions and scroll-driven animation throughout.
+A black-and-green, terminal-inspired website for the fictional hackathon **"The Last Commit"**: frontend only,
+with a real-time 3D background, custom cursor interactions and scroll-driven animation throughout.
 
 **Live demo:** _add your deployed link here_
 
@@ -13,17 +13,18 @@ real-time 3D background, custom cursor interactions and scroll-driven animation 
 ## Features
 
 ### 3D & WebGL (Three.js)
-- **The Core**: a noise-displaced sphere drawn with a custom GLSL shader (simplex noise in the vertex shader, fresnel glow in the fragment shader) inside a rotating wireframe shell.
-- **Orbit rings** with "commit nodes" travelling around the core.
+- **3D git commit graph**: a `main` branch with four feature branches that fork off and merge back in. The branches draw themselves in on load, commit nodes pop in as each line reaches them, and small "push" packets flow along the branches.
+- **"The last commit"**: a glowing node at the head of `main` with a pulsing ring.
+- **Floating code snippets** (`git push`, `npm run dev`, `200 OK` and so on) drifting in the background.
 - **Interactive particle field**: particles are pushed away from the mouse in the vertex shader.
-- **Endless synthwave grid floor** and a striped retro sun, both drawn with shaders.
-- **Bloom post-processing** (`UnrealBloomPass`).
-- **Scroll choreography**: the core drifts, recedes and changes colour for each section.
-- Click (poke) the core to send out a shockwave.
+- **Scrolling grid floor** drawn with a shader.
+- **Soft bloom post-processing** (`UnrealBloomPass`).
+- **Scroll choreography**: the graph drifts, recedes and shifts colour for each section.
+- Hovering a commit enlarges it, and clicking the graph pushes along every branch at once.
 
 ### Cursor interactions
-- A targeting-reticle cursor whose ring trails behind the dot, with **context labels** (`play`, `lock`, `drag`, `poke`…).
-- A neon **light trail** drawn on a 2D canvas.
+- A high-contrast cursor (a white dot plus a green ring) with **context labels** (`go`, `select`, `drag`, `push`…).
+- A faint **light trail** drawn on a 2D canvas.
 - A **click burst** effect, and a text caret over inputs.
 - **Magnetic buttons** that pull toward the pointer.
 - **3D tilt cards** with a moving glare highlight (class cards, objectives panel, player ID card).
@@ -32,27 +33,27 @@ real-time 3D background, custom cursor interactions and scroll-driven animation 
 
 ### Animation
 - A terminal **boot sequence** with a "PRESS START" screen.
-- The hero title flies in letter by letter on a 3D rotation, with random **RGB-split glitch** bursts.
+- The hero title slides in letter by letter, the `git push` command types itself out, and a light **glitch** effect plays on hover and every few seconds.
+- A **live commit feed** in the hero: simulated commits from teams slide in every few seconds.
 - A live **countdown** to the event start.
 - Section titles **decode/scramble** into place as they scroll into view.
 - Mission text **lights up word by word** as you scroll.
 - **Pinned horizontal timeline** ("Quest Log") on desktop; it becomes a vertical timeline on mobile.
-- Class cards are dealt in like a hand of cards; loot cards rise in with animated prize counters.
+- Track cards fade up in sequence, and the prize cards rise in with animated prize counters.
 - A marquee that **skews with scroll velocity**, a scroll progress bar, and a HUD readout (FPS, cursor X/Y, current section).
 - Smooth scrolling via Lenis.
 
 ### Sections
-Hero → Mission Briefing → Select Your Class (tracks) → Quest Log (schedule) → Loot Table (prizes) →
-Allied Factions (sponsors) → Decrypted Intel (FAQ) → Create Player (registration) → Terminal footer.
+Hero → About → Tracks → Schedule → Prizes → Sponsors → FAQ → Registration → Terminal footer.
 
 ### Registration (frontend only)
-- A three-step "Create Player" wizard: identity → loadout → confirm, with inline validation.
-- A **live player ID card** that updates as you type, including a generated identicon avatar and barcode.
-- Clicking **LOCK IN** on a class card pre-selects that class in the form.
+- A three-step form: details (name, email, college) → track, experience and team size → confirm, with inline validation.
+- A **live event pass** that updates as you type, including a generated identicon avatar and barcode.
+- Clicking **Choose track** on a track card pre-selects that track in the form.
 - Nothing is sent to a server. The completed registration is only saved to `localStorage`.
 
 ### Easter eggs
-- An interactive **terminal** in the footer: try `help`, `git push`, `whoami`, `sudo`, `core`.
+- An interactive **terminal** in the footer: try `help`, `git push`, `whoami`, `sudo`, `push`.
 - The **Konami code** (↑↑↓↓←→←→BA) or the `iddqd` command toggles GOD MODE.
 
 ### Accessibility & performance
@@ -71,19 +72,22 @@ Allied Factions (sponsors) → Decrypted Intel (FAQ) → Create Player (registra
 | [GSAP](https://gsap.com) + ScrollTrigger | Timelines and scroll-driven animation |
 | [Lenis](https://lenis.darkroom.engineering) | Smooth scrolling |
 | Plain CSS | Layout, glitch effects, CSS-3D crystals |
+| [Fontsource](https://fontsource.org) | Self-hosted Chakra Petch + JetBrains Mono (no external font requests) |
 
 ## Project structure
 
 ```
 index.html          page markup (all sections)
 src/main.ts         entry point: smooth scroll, GSAP/ScrollTrigger choreography, countdown, easter eggs
-src/scene.ts        Three.js background (core shader, particles, grid, sun, bloom)
+src/scene.ts        Three.js background (commit graph, code snippets, particles, grid, bloom)
+src/feed.ts         simulated live commit feed in the hero
 src/cursor.ts       custom cursor, light trail, click burst, magnetic buttons
 src/effects.ts      text scramble, 3D tilt, counters, draggable crystals, glitch, text splitting
 src/boot.ts         boot / loading sequence
 src/register.ts     registration wizard + live ID card
 src/terminal.ts     interactive footer terminal
 src/styles.css      all styles
+scripts/build-single.mjs  bundles the build into one offline HTML file
 ```
 
 ## Running locally
@@ -93,6 +97,7 @@ npm install
 npm run dev       # http://localhost:5173
 npm run build     # production build → dist/
 npm run preview   # serve the production build
+npm run build:single  # one self-contained file: the-last-commit.html
 ```
 
 ## Deployment

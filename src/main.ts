@@ -1,3 +1,8 @@
+import "@fontsource/chakra-petch/latin-400.css";
+import "@fontsource/chakra-petch/latin-500.css";
+import "@fontsource/chakra-petch/latin-700.css";
+import "@fontsource/jetbrains-mono/latin-400.css";
+import "@fontsource/jetbrains-mono/latin-600.css";
 import "./styles.css";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -8,6 +13,7 @@ import { initCursor } from "./cursor";
 import { runBoot } from "./boot";
 import { initRegister } from "./register";
 import { initTerminal } from "./terminal";
+import { initFeed } from "./feed";
 import {
   countUp,
   initCrystals,
@@ -94,7 +100,7 @@ if (scene) {
     if (over !== wasOver) {
       wasOver = over;
       cursorRoot.classList.toggle("is-hover", over);
-      label.textContent = over ? "poke" : "";
+      label.textContent = over ? "push" : "";
     }
   });
 }
@@ -146,6 +152,7 @@ initTilt();
 initCrystals();
 initGlitchBursts();
 initRegister((hex) => scene?.setAccent(hex));
+initFeed();
 initTerminal({ godMode, pulse: () => scene?.pulse() });
 
 // ------------------------------------------------------------------ scroll-driven animation
@@ -165,15 +172,15 @@ function setupScroll() {
 
   // per-section HUD label, active nav link & scene accent colour
   const ACCENTS: Record<string, string> = {
-    BOOT: "#00f0ff",
-    MISSION: "#00f0ff",
-    CLASSES: "#ff2bd6",
-    QUESTS: "#b6ff3b",
-    LOOT: "#ffb800",
-    ALLIES: "#a77bff",
-    INTEL: "#00f0ff",
-    JOIN: "#00f0ff",
-    EXIT: "#ff2bd6",
+    HOME: "#00ff66",
+    ABOUT: "#00ff66",
+    TRACKS: "#39ff14",
+    SCHEDULE: "#00e5a0",
+    PRIZES: "#a8ff60",
+    SPONSORS: "#00ff66",
+    FAQ: "#00e5a0",
+    REGISTER: "#00ff66",
+    FOOTER: "#39ff14",
   };
   const hudSec = $("#hudSec");
   $$("[data-section]").forEach((sec) => {
@@ -185,7 +192,7 @@ function setupScroll() {
       onToggle: (self) => {
         if (!self.isActive) return;
         hudSec.textContent = name;
-        if (!document.body.classList.contains("god")) scene?.setAccent(ACCENTS[name] ?? "#00f0ff");
+        if (!document.body.classList.contains("god")) scene?.setAccent(ACCENTS[name] ?? "#00ff66");
         $$(".hud__nav a").forEach((a) => a.classList.toggle("is-active", a.getAttribute("href") === `#${sec.id}`));
       },
     });
@@ -214,10 +221,9 @@ function setupScroll() {
   });
 
   gsap.from(".mission__panel", {
-    x: 80,
-    rotateY: -25,
+    y: 40,
     opacity: 0,
-    duration: 1.2,
+    duration: 0.9,
     ease: "power3.out",
     scrollTrigger: { trigger: ".mission__panel", start: "top 85%" },
   });
@@ -232,15 +238,12 @@ function setupScroll() {
 
   // class cards deal in like a hand of cards
   gsap.from(".class-card", {
-    y: 120,
-    rotateX: -35,
-    rotateZ: (i) => (i % 2 ? 4 : -4),
+    y: 50,
     opacity: 0,
-    duration: 1,
-    stagger: 0.1,
+    duration: 0.8,
+    stagger: 0.08,
     ease: "power3.out",
     scrollTrigger: { trigger: ".class-grid", start: "top 80%" },
-    onComplete: () => $$(".class-card").forEach((c) => c.classList.add("is-in")),
     clearProps: "transform",
   });
 
@@ -269,10 +272,9 @@ function setupScroll() {
     // each quest card pops as it slides into view
     $$(".quest").forEach((q) => {
       gsap.from(q, {
-        y: 60,
-        opacity: 0.15,
-        rotate: 3,
-        duration: 0.6,
+        y: 24,
+        opacity: 0.3,
+        duration: 0.5,
         scrollTrigger: { trigger: q, containerAnimation: tween, start: "left 90%", toggleActions: "play none none reverse" },
       });
     });
@@ -292,12 +294,11 @@ function setupScroll() {
 
   // loot: cards rise from below, legendary one last & biggest
   gsap.from(".loot-card", {
-    y: 140,
+    y: 50,
     opacity: 0,
-    scale: 0.9,
-    duration: 1.1,
-    stagger: { each: 0.15, from: "edges" },
-    ease: "back.out(1.4)",
+    duration: 0.8,
+    stagger: { each: 0.12, from: "edges" },
+    ease: "power2.out",
     scrollTrigger: { trigger: ".loot__grid", start: "top 80%" },
   });
   $$(".loot-card__amount").forEach((el) => {
@@ -314,10 +315,8 @@ function setupScroll() {
   // allies: glitchy flicker-in
   gsap.from(".ally", {
     opacity: 0,
-    duration: 0.08,
-    repeat: 3,
-    yoyo: true,
-    stagger: { each: 0.06, from: "random" },
+    duration: 0.5,
+    stagger: 0.05,
     scrollTrigger: { trigger: ".allies", start: "top 85%" },
   });
 
@@ -330,7 +329,7 @@ function setupScroll() {
   });
 
   gsap.from(".reg, .id-wrap", {
-    y: 80,
+    y: 40,
     opacity: 0,
     stagger: 0.15,
     duration: 1,
@@ -342,7 +341,7 @@ function setupScroll() {
   const marquee = $(".marquee__track");
   ScrollTrigger.create({
     onUpdate: (self) => {
-      const v = gsap.utils.clamp(-20, 20, self.getVelocity() / 150);
+      const v = gsap.utils.clamp(-6, 6, self.getVelocity() / 300);
       gsap.to(marquee, { skewX: -v, duration: 0.3, overwrite: true });
     },
   });
@@ -357,23 +356,36 @@ function heroIntro() {
   const lines = $$(".hero__line");
   const chars = lines.flatMap((l) => splitChars(l));
 
+  // the command line types itself out like a real terminal
+  const cmd = $("#heroCmd");
+  const cmdText = cmd.textContent ?? "";
+  cmd.textContent = "";
+  const typeCmd = () => {
+    let i = 0;
+    const step = () => {
+      cmd.textContent = cmdText.slice(0, ++i) + (i < cmdText.length ? "▌" : "");
+      if (i < cmdText.length) setTimeout(step, 35);
+    };
+    step();
+  };
+
   const tl = gsap.timeline({ defaults: { ease: "power4.out" } });
   tl.from(chars, {
-    yPercent: 120,
-    rotateX: -90,
+    yPercent: 100,
     opacity: 0,
-    duration: 1.1,
-    stagger: 0.04,
+    duration: 0.8,
+    stagger: 0.025,
   })
     .fromTo(".reveal-up", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.9, stagger: 0.1 }, "-=0.8")
     .add(() => {
       $$(".hero__stats [data-count]").forEach((el) => countUp(el));
+      typeCmd();
       scene?.pulse();
     }, "-=0.6")
     // only wire the scroll-away once the intro is done, so the two tweens never fight
     .add(() => {
       gsap.fromTo(
-        ".hero__title, .hero__sub, .countdown, .hero__cta, .hero__stats, .hero__tag",
+        ".hero__title, .hero__sub, .countdown, .hero__cta, .hero__stats, .hero__tag, .feed",
         { yPercent: 0, opacity: 1 },
         {
           yPercent: -30,
@@ -390,7 +402,7 @@ function heroIntro() {
   window.addEventListener("pointermove", (e) => {
     const x = e.clientX / window.innerWidth - 0.5;
     const y = e.clientY / window.innerHeight - 0.5;
-    gsap.to(title, { x: x * -30, y: y * -16, duration: 1, ease: "power3.out" });
+    gsap.to(title, { x: x * -10, y: y * -6, duration: 1.2, ease: "power3.out" });
   });
 }
 
@@ -408,7 +420,7 @@ window.addEventListener("keydown", (e) => {
 
 function godMode() {
   const on = document.body.classList.toggle("god");
-  scene?.setAccent(on ? "#ffb800" : "#00f0ff");
+  scene?.setAccent(on ? "#eaffea" : "#00ff66");
   scene?.pulse();
   const gm = $("#godmode");
   gm.querySelector("span")!.textContent = on ? "GOD MODE ENABLED" : "GOD MODE DISABLED";

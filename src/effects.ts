@@ -43,7 +43,7 @@ export function initTilt() {
 
   document.querySelectorAll<HTMLElement>("[data-tilt]").forEach((card) => {
     let raf = 0;
-    const max = card.classList.contains("id-card") ? 16 : 12;
+    const max = card.classList.contains("id-card") ? 10 : 7;
     card.addEventListener("pointermove", (e) => {
       const r = card.getBoundingClientRect();
       const px = (e.clientX - r.left) / r.width;
@@ -51,7 +51,7 @@ export function initTilt() {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         card.style.transition = "transform .08s linear";
-        card.style.transform = `perspective(900px) rotateX(${(0.5 - py) * max}deg) rotateY(${(px - 0.5) * max}deg) scale(1.02)`;
+        card.style.transform = `perspective(900px) rotateX(${(0.5 - py) * max}deg) rotateY(${(px - 0.5) * max}deg)`;
         card.style.setProperty("--gx", `${px * 100}%`);
         card.style.setProperty("--gy", `${py * 100}%`);
       });
@@ -136,9 +136,9 @@ export function initGlitchBursts() {
     const el = els[(Math.random() * els.length) | 0];
     if (el) {
       el.classList.add("is-glitching");
-      setTimeout(() => el.classList.remove("is-glitching"), 180 + Math.random() * 260);
+      setTimeout(() => el.classList.remove("is-glitching"), 150 + Math.random() * 150);
     }
-    setTimeout(fire, 900 + Math.random() * 2200);
+    setTimeout(fire, 6000 + Math.random() * 6000);
   };
   setTimeout(fire, 1500);
   els.forEach((el) => {

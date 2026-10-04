@@ -27,13 +27,13 @@ export function initTerminal(actions: { godMode: () => void; pulse: () => void }
         [
           "available commands:",
           "  about      what is this",
-          "  schedule   jump to the quest log",
+          "  schedule   jump to the schedule",
           "  prizes     list the loot table",
-          "  register   go to player creation",
+          "  register   go to registration",
           "  countdown  time until git init",
           "  whoami     identify yourself",
           "  sudo       try it",
-          "  core       poke the core",
+          "  push       push to every branch at once",
           "  clear      clear the screen",
         ].join("\n"),
         "acc",
@@ -41,13 +41,13 @@ export function initTerminal(actions: { godMode: () => void; pulse: () => void }
     about: () =>
       print("THE LAST COMMIT — a 48h hackathon. The global repository freezes at 00:00. Ship before it does."),
     schedule: () => {
-      print("→ opening quest log…", "acc");
+      print("→ opening schedule…", "acc");
       go("quests");
     },
     prizes: () =>
-      print("LEGENDARY  ₹5,00,000\nEPIC       ₹3,00,000\nRARE       ₹1,50,000\n+ 6× class awards, side-quest drops", "acc"),
+      print("1st  ₹5,00,000\n2nd  ₹3,00,000\n3rd  ₹1,50,000\n+ 6× best-in-track awards and special prizes", "acc"),
     register: () => {
-      print("→ spawning player creation…", "acc");
+      print("→ opening registration…", "acc");
       go("join");
     },
     countdown: () => {
@@ -59,8 +59,8 @@ export function initTerminal(actions: { godMode: () => void; pulse: () => void }
     },
     whoami: () => {
       try {
-        const p = JSON.parse(localStorage.getItem("tlc-player") ?? "null");
-        if (p) return print(`@${p.tag} — ${p.class}, level ${p.level}. registered ✔`, "acc");
+        const p = JSON.parse(localStorage.getItem("tlc-registration") ?? "null");
+        if (p) return print(`${p.name} (${p.class} track). registered ✔`, "acc");
       } catch {
         /* ignore */
       }
@@ -68,11 +68,11 @@ export function initTerminal(actions: { godMode: () => void; pulse: () => void }
     },
     sudo: (args) => {
       if (args.join(" ") === "make me a sandwich") return print("okay.", "acc");
-      print("permission denied: nice try, player. (hint: there's a cheat code ↑↑↓↓…)", "warn");
+      print("permission denied. (hint: there's a cheat code ↑↑↓↓…)", "warn");
     },
-    core: () => {
+    push: () => {
       actions.pulse();
-      print("// core destabilised. look up ↑", "acc");
+      print("// pushed to every branch. look up ↑", "acc");
     },
     git: (args) => {
       if (args[0] === "push") {

@@ -5,59 +5,15 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
 /**
- * The fixed WebGL background:
- *  - "The Core": a noise-displaced, fresnel-lit sphere inside a wireframe shell
- *  - orbit rings with "commit" nodes travelling around them
- *  - a particle field that is pushed away by the mouse
- *  - an endless synthwave grid floor
- *  - bloom post-processing
+ * The fixed WebGL background, themed around a hackathon repo:
+ *  - a 3D git commit graph: a `main` branch with feature branches that fork off
+ *    and merge back in, drawn in on load, with "pushes" travelling along it
+ *  - the final "last commit" node at the head of main
+ *  - floating code snippets drifting in the background
+ *  - a particle field that moves out of the mouse's way
+ *  - a scrolling grid floor
+ *  - soft bloom post-processing
  */
-
-// Compact 3D simplex noise (Ashima Arts / Stefan Gustavson, MIT)
-const NOISE = /* glsl */ `
-vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
-vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
-vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
-vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
-float snoise(vec3 v){
-  const vec2 C=vec2(1.0/6.0,1.0/3.0);
-  const vec4 D=vec4(0.0,0.5,1.0,2.0);
-  vec3 i=floor(v+dot(v,C.yyy));
-  vec3 x0=v-i+dot(i,C.xxx);
-  vec3 g=step(x0.yzx,x0.xyz);
-  vec3 l=1.0-g;
-  vec3 i1=min(g.xyz,l.zxy);
-  vec3 i2=max(g.xyz,l.zxy);
-  vec3 x1=x0-i1+C.xxx;
-  vec3 x2=x0-i2+C.yyy;
-  vec3 x3=x0-D.yyy;
-  i=mod289(i);
-  vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));
-  float n_=0.142857142857;
-  vec3 ns=n_*D.wyz-D.xzx;
-  vec4 j=p-49.0*floor(p*ns.z*ns.z);
-  vec4 x_=floor(j*ns.z);
-  vec4 y_=floor(j-7.0*x_);
-  vec4 x=x_*ns.x+ns.yyyy;
-  vec4 y=y_*ns.x+ns.yyyy;
-  vec4 h=1.0-abs(x)-abs(y);
-  vec4 b0=vec4(x.xy,y.xy);
-  vec4 b1=vec4(x.zw,y.zw);
-  vec4 s0=floor(b0)*2.0+1.0;
-  vec4 s1=floor(b1)*2.0+1.0;
-  vec4 sh=-step(h,vec4(0.0));
-  vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy;
-  vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
-  vec3 p0=vec3(a0.xy,h.x);
-  vec3 p1=vec3(a0.zw,h.y);
-  vec3 p2=vec3(a1.xy,h.z);
-  vec3 p3=vec3(a1.zw,h.w);
-  vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
-  p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
-  vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0);
-  m=m*m;
-  return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
-}`;
 
 export interface SceneApi {
   setScroll(progress: number): void;
@@ -66,6 +22,27 @@ export interface SceneApi {
   isPointerOverCore(): boolean;
 }
 
+const SNIPPETS = [
+  "git push",
+  "</>",
+  "{ }",
+  "=>",
+  "npm run dev",
+  "git merge",
+  "fn()",
+  "200 OK",
+  "// TODO",
+  "#hackathon",
+  "deploy",
+  "async",
+  "&&",
+  "[ ]",
+  "git commit",
+  "0x1F",
+  "build ✓",
+  "PR #42",
+];
+
 export function createScene(canvas: HTMLCanvasElement): SceneApi {
   const isSmall = window.matchMedia("(max-width: 900px)").matches;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -73,101 +50,157 @@ export function createScene(canvas: HTMLCanvasElement): SceneApi {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isSmall, alpha: false, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, isSmall ? 1.25 : 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setClearColor(0x05060a, 1);
+  renderer.setClearColor(0x020402, 1);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x05060a, 0.045);
+  scene.fog = new THREE.FogExp2(0x020402, 0.045);
 
   const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
   camera.position.set(0, 0.4, 9);
 
-  const accent = new THREE.Color("#00f0ff");
-  const accentTarget = new THREE.Color("#00f0ff");
-  const pink = new THREE.Color("#ff2bd6");
+  const accent = new THREE.Color("#00ff66");
+  const accentTarget = new THREE.Color("#00ff66");
 
-  // ---------------------------------------------------------------- core
-  const coreGroup = new THREE.Group();
-  scene.add(coreGroup);
+  // ---------------------------------------------------------------- commit graph
+  const graph = new THREE.Group();
+  scene.add(graph);
+  const tilt = new THREE.Group(); // static diagonal tilt so the graph reads as 3D
+  tilt.rotation.set(0.25, -0.35, 0.3);
+  graph.add(tilt);
 
-  const coreUniforms = {
-    uTime: { value: 0 },
-    uDistort: { value: 0.35 },
-    uPulse: { value: 0 },
-    uColorA: { value: accent.clone() },
-    uColorB: { value: pink.clone() },
+  type Branch = {
+    curve: THREE.CatmullRomCurve3;
+    tube: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>;
+    start: number; // seconds after load when this branch starts drawing
+    nodes: { mesh: THREE.Mesh; t: number }[];
+    packets: { mesh: THREE.Mesh; offset: number }[];
+    isMain: boolean;
   };
+  const branches: Branch[] = [];
 
-  const coreMat = new THREE.ShaderMaterial({
-    uniforms: coreUniforms,
-    vertexShader: /* glsl */ `
-      ${NOISE}
-      uniform float uTime;
-      uniform float uDistort;
-      uniform float uPulse;
-      varying vec3 vNormal;
-      varying vec3 vView;
-      varying float vNoise;
-      void main(){
-        float n = snoise(normal * 1.6 + uTime * 0.35);
-        float n2 = snoise(normal * 4.0 - uTime * 0.6) * 0.25;
-        float d = (n + n2) * (uDistort + uPulse * 0.8);
-        vNoise = n;
-        vec3 pos = position + normal * d;
-        vec4 mv = modelViewMatrix * vec4(pos, 1.0);
-        vNormal = normalize(normalMatrix * normal);
-        vView = normalize(-mv.xyz);
-        gl_Position = projectionMatrix * mv;
-      }`,
-    fragmentShader: /* glsl */ `
-      uniform vec3 uColorA;
-      uniform vec3 uColorB;
-      uniform float uPulse;
-      varying vec3 vNormal;
-      varying vec3 vView;
-      varying float vNoise;
-      void main(){
-        float fres = pow(1.0 - max(dot(vNormal, vView), 0.0), 2.2);
-        vec3 col = mix(uColorA, uColorB, smoothstep(-0.6, 0.8, vNoise));
-        vec3 base = col * 0.06;
-        vec3 c = base + col * fres * 1.05 + vec3(1.0) * uPulse * 0.5 * fres;
-        gl_FragColor = vec4(c, 1.0);
-      }`,
-  });
-  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.35, isSmall ? 48 : 96), coreMat);
-  coreGroup.add(core);
+  const mainMat = new THREE.MeshBasicMaterial({ color: accent });
+  const nodeGeo = new THREE.SphereGeometry(0.075, 16, 12);
+  const mainNodeGeo = new THREE.SphereGeometry(0.1, 16, 12);
+  const packetGeo = new THREE.SphereGeometry(0.035, 8, 6);
+  const packetMat = new THREE.MeshBasicMaterial({ color: 0xeaffea });
+  const allNodes: THREE.Mesh[] = [];
 
-  const shellMat = new THREE.MeshBasicMaterial({ color: accent, wireframe: true, transparent: true, opacity: 0.22 });
-  const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(2.05, 1), shellMat);
-  coreGroup.add(shell);
+  const MAIN_LEN = 3.2;
+  const mainPoint = (x: number) => new THREE.Vector3(x, Math.sin(x * 0.6) * 0.15, Math.cos(x * 0.5) * 0.2);
 
-  // rings + orbiting commit nodes
-  const rings: THREE.Group[] = [];
-  const nodes: { mesh: THREE.Mesh; ring: THREE.Group; r: number; speed: number; phase: number }[] = [];
-  const ringMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.45 });
-  const nodeGeo = new THREE.OctahedronGeometry(0.09, 0);
-  const nodeMatA = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const nodeMatB = new THREE.MeshBasicMaterial({ color: pink });
+  function addBranch(points: THREE.Vector3[], color: THREE.Color | string, start: number, isMain: boolean, nodeCount: number) {
+    const curve = new THREE.CatmullRomCurve3(points);
+    const mat = isMain ? mainMat : new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 });
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 120, isMain ? 0.022 : 0.014, 6, false), mat);
+    tube.geometry.setDrawRange(0, 0);
+    tilt.add(tube);
 
-  [
-    { r: 2.7, tilt: [1.2, 0.2, 0], speed: 0.5, count: 5 },
-    { r: 3.3, tilt: [1.9, -0.5, 0.3], speed: -0.32, count: 7 },
-    { r: 3.9, tilt: [0.4, 0.9, -0.2], speed: 0.22, count: 4 },
-  ].forEach((cfg, i) => {
-    const g = new THREE.Group();
-    g.rotation.set(cfg.tilt[0], cfg.tilt[1], cfg.tilt[2]);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(cfg.r, 0.006, 6, 160), ringMat);
-    g.add(ring);
-    for (let k = 0; k < cfg.count; k++) {
-      const m = new THREE.Mesh(nodeGeo, k % 3 === 0 ? nodeMatB : nodeMatA);
-      g.add(m);
-      nodes.push({ mesh: m, ring: g, r: cfg.r, speed: cfg.speed * (1 + i * 0.1), phase: (k / cfg.count) * Math.PI * 2 });
+    const nodes: Branch["nodes"] = [];
+    for (let i = 0; i < nodeCount; i++) {
+      const t = (i + (isMain ? 0 : 1)) / (isMain ? nodeCount - 1 : nodeCount + 1);
+      const mesh = new THREE.Mesh(isMain ? mainNodeGeo : nodeGeo, isMain ? mainMat : mat);
+      mesh.position.copy(curve.getPointAt(t));
+      mesh.scale.setScalar(0);
+      tilt.add(mesh);
+      nodes.push({ mesh, t });
+      allNodes.push(mesh);
     }
-    coreGroup.add(g);
-    rings.push(g);
+
+    const packets: Branch["packets"] = [];
+    const packetCount = isMain ? 3 : 1;
+    for (let i = 0; i < packetCount; i++) {
+      const mesh = new THREE.Mesh(packetGeo, packetMat);
+      mesh.visible = false;
+      tilt.add(mesh);
+      packets.push({ mesh, offset: i / packetCount + Math.random() * 0.2 });
+    }
+
+    branches.push({ curve, tube, start, nodes, packets, isMain });
+  }
+
+  // main: a long, gently waving line
+  const mainPts: THREE.Vector3[] = [];
+  for (let x = -MAIN_LEN; x <= MAIN_LEN + 0.001; x += 0.4) mainPts.push(mainPoint(x));
+  addBranch(mainPts, accent, 0, true, 13);
+
+  // feature branches fork off main and merge back in further along
+  const featureDefs = [
+    { from: -2.8, to: -0.6, y: 1.0, z: 0.6, color: "#39ff14", name: "feat/auth" },
+    { from: -2.0, to: 0.8, y: -1.1, z: -0.5, color: "#a8ff60", name: "feat/ui" },
+    { from: -0.4, to: 2.2, y: 1.3, z: -0.7, color: "#00e5a0", name: "feat/api" },
+    { from: 0.6, to: 2.9, y: -0.9, z: 0.8, color: "#c6ff00", name: "fix/bugs" },
+  ];
+  featureDefs.forEach((f, i) => {
+    const a = mainPoint(f.from);
+    const b = mainPoint(f.to);
+    const span = f.to - f.from;
+    const pts = [
+      a,
+      new THREE.Vector3(f.from + span * 0.2, a.y + f.y * 0.8, a.z + f.z * 0.8),
+      new THREE.Vector3(f.from + span * 0.5, a.y + f.y, a.z + f.z),
+      new THREE.Vector3(f.from + span * 0.8, b.y + f.y * 0.8, b.z + f.z * 0.8),
+      b,
+    ];
+    addBranch(pts, f.color, 0.6 + i * 0.45, false, 3);
   });
+
+  // the head of main: "the last commit"
+  const headMat = new THREE.MeshBasicMaterial({ color: 0xeaffea });
+  const head = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), headMat);
+  head.position.copy(mainPoint(MAIN_LEN + 0.45));
+  head.scale.setScalar(0);
+  tilt.add(head);
+  const headRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.42, 0.01, 6, 64),
+    new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.6 }),
+  );
+  headRing.position.copy(head.position);
+  headRing.scale.setScalar(0);
+  tilt.add(headRing);
+  // connector from main's tip to the head
+  const headLink = new THREE.Mesh(
+    new THREE.TubeGeometry(new THREE.LineCurve3(mainPoint(MAIN_LEN), head.position.clone()), 4, 0.012, 6, false),
+    new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.5 }),
+  );
+  headLink.visible = false;
+  tilt.add(headLink);
+
+  // invisible hit-box for hover / click on the graph
+  const hitBox = new THREE.Mesh(new THREE.BoxGeometry(7.6, 3.4, 2.2), new THREE.MeshBasicMaterial({ visible: false }));
+  tilt.add(hitBox);
+
+  // ---------------------------------------------------------------- floating code snippets
+  const snippetGroup = new THREE.Group();
+  scene.add(snippetGroup);
+  const snippetCount = isSmall ? 8 : SNIPPETS.length;
+  const snippets: { sprite: THREE.Sprite; speed: number; baseX: number; phase: number }[] = [];
+  for (let i = 0; i < snippetCount; i++) {
+    const text = SNIPPETS[i % SNIPPETS.length];
+    const c = document.createElement("canvas");
+    const ctx = c.getContext("2d")!;
+    const fontPx = 48;
+    ctx.font = `500 ${fontPx}px "JetBrains Mono", monospace`;
+    const w = Math.ceil(ctx.measureText(text).width) + 16;
+    c.width = w;
+    c.height = fontPx + 16;
+    ctx.font = `500 ${fontPx}px "JetBrains Mono", monospace`;
+    ctx.fillStyle = "#00ff66";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, 8, c.height / 2);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.16 + Math.random() * 0.14, depthWrite: false });
+    const sprite = new THREE.Sprite(mat);
+    const h = 0.32 + Math.random() * 0.25;
+    sprite.scale.set((h * c.width) / c.height, h, 1);
+    const baseX = (Math.random() - 0.5) * 22;
+    sprite.position.set(baseX, (Math.random() - 0.5) * 14, -3 - Math.random() * 12);
+    snippetGroup.add(sprite);
+    snippets.push({ sprite, speed: 0.08 + Math.random() * 0.12, baseX, phase: Math.random() * Math.PI * 2 });
+  }
 
   // ---------------------------------------------------------------- particles
-  const COUNT = isSmall ? 900 : 2200;
+  const COUNT = isSmall ? 600 : 1300;
   const positions = new Float32Array(COUNT * 3);
   const seeds = new Float32Array(COUNT);
   for (let i = 0; i < COUNT; i++) {
@@ -208,12 +241,12 @@ export function createScene(canvas: HTMLCanvasElement): SceneApi {
         // mouse repulsion in the XY plane
         vec2 d = p.xy - uMouse.xy;
         float dist = length(d);
-        float push = smoothstep(2.6, 0.0, dist) * (1.0 - clamp(abs(p.z) / 10.0, 0.0, 1.0));
-        p.xy += normalize(d + 0.0001) * push * 1.4;
+        float push = smoothstep(2.2, 0.0, dist) * (1.0 - clamp(abs(p.z) / 10.0, 0.0, 1.0));
+        p.xy += normalize(d + 0.0001) * push * 0.7;
         vPush = push;
         vSeed = aSeed;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
-        gl_PointSize = (2.0 + aSeed * 3.0 + push * 6.0) * uPixel * (8.0 / -mv.z);
+        gl_PointSize = (1.6 + aSeed * 2.4 + push * 2.0) * uPixel * (8.0 / -mv.z);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */ `
@@ -225,29 +258,26 @@ export function createScene(canvas: HTMLCanvasElement): SceneApi {
         float d = length(c);
         if (d > 0.5) discard;
         float a = smoothstep(0.5, 0.0, d);
-        vec3 col = mix(uColor, vec3(1.0, 0.17, 0.84), step(0.85, vSeed));
-        col = mix(col, vec3(1.0), vPush * 0.6);
-        gl_FragColor = vec4(col, a * (0.35 + vSeed * 0.5 + vPush));
+        vec3 col = mix(uColor, vec3(0.78, 1.0, 0.0), step(0.9, vSeed));
+        col = mix(col, vec3(1.0), vPush * 0.3);
+        gl_FragColor = vec4(col, a * (0.2 + vSeed * 0.3 + vPush * 0.4));
       }`,
   });
-  const points = new THREE.Points(pGeo, pMat);
-  scene.add(points);
+  scene.add(new THREE.Points(pGeo, pMat));
 
   // ---------------------------------------------------------------- grid floor
   const gridUniforms = {
     uTime: { value: 0 },
     uSpeed: { value: 1 },
-    uColor: { value: pink.clone() },
+    uColor: { value: new THREE.Color("#00c853") },
   };
   const gridMat = new THREE.ShaderMaterial({
     uniforms: gridUniforms,
     transparent: true,
     depthWrite: false,
     vertexShader: /* glsl */ `
-      varying vec2 vUv;
       varying vec3 vWorld;
       void main(){
-        vUv = uv;
         vec4 w = modelMatrix * vec4(position, 1.0);
         vWorld = w.xyz;
         gl_Position = projectionMatrix * viewMatrix * w;
@@ -267,7 +297,7 @@ export function createScene(canvas: HTMLCanvasElement): SceneApi {
         float fade = smoothstep(-60.0, -4.0, vWorld.z) * smoothstep(10.0, 2.0, vWorld.z);
         float centerGlow = smoothstep(14.0, 0.0, abs(vWorld.x));
         vec3 col = uColor * (0.6 + centerGlow * 0.8);
-        gl_FragColor = vec4(col, l * fade * 0.55);
+        gl_FragColor = vec4(col, l * fade * 0.26);
       }`,
   });
   const grid = new THREE.Mesh(new THREE.PlaneGeometry(120, 120, 1, 1), gridMat);
@@ -275,36 +305,10 @@ export function createScene(canvas: HTMLCanvasElement): SceneApi {
   grid.position.set(0, -3.2, -20);
   scene.add(grid);
 
-  // a big "sun" disc behind everything for that retro-future horizon
-  const sunMat = new THREE.ShaderMaterial({
-    uniforms: { uTime: { value: 0 } },
-    transparent: true,
-    depthWrite: false,
-    vertexShader: /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
-    fragmentShader: /* glsl */ `
-      uniform float uTime;
-      varying vec2 vUv;
-      void main(){
-        vec2 c = vUv - 0.5;
-        float d = length(c);
-        if (d > 0.5) discard;
-        // horizontal stripes cut out of the lower half
-        float y = vUv.y;
-        float stripes = step(0.5, fract(y * 18.0 - uTime * 0.25));
-        float cut = mix(1.0, stripes, smoothstep(0.55, 0.15, y));
-        vec3 col = mix(vec3(1.0, 0.17, 0.84), vec3(1.0, 0.72, 0.0), y);
-        float edge = smoothstep(0.5, 0.46, d);
-        gl_FragColor = vec4(col * 0.75, cut * edge * 0.32);
-      }`,
-  });
-  const sun = new THREE.Mesh(new THREE.PlaneGeometry(26, 26), sunMat);
-  sun.position.set(0, 3, -55);
-  scene.add(sun);
-
   // ---------------------------------------------------------------- post-processing
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), isSmall ? 0.55 : 0.75, 0.5, 0.32);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), isSmall ? 0.45 : 0.6, 0.4, 0.3);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
@@ -314,7 +318,8 @@ export function createScene(canvas: HTMLCanvasElement): SceneApi {
   const raycaster = new THREE.Raycaster();
   const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const mouseWorld = new THREE.Vector3();
-  let overCore = false;
+  let overGraph = false;
+  let hovered: THREE.Mesh | null = null;
   let hasPointer = false;
   let scroll = 0;
   let scrollSmooth = 0;
@@ -329,9 +334,9 @@ export function createScene(canvas: HTMLCanvasElement): SceneApi {
     hasPointer = false;
   });
 
-  // Click on the core = shockwave. Listen on window because the canvas sits under the page.
+  // Click on the graph = everything pushes at once. Listen on window because the canvas sits under the page.
   window.addEventListener("pointerdown", () => {
-    if (overCore) api.pulse();
+    if (overGraph) api.pulse();
   });
 
   function resize() {
@@ -349,71 +354,95 @@ export function createScene(canvas: HTMLCanvasElement): SceneApi {
   const t0 = performance.now();
   let last = t0;
   const tmpVec = new THREE.Vector3();
+  const DRAW_TIME = reduceMotion ? 0.01 : 1.6; // seconds for a branch to draw in
 
   function tick() {
     const now = performance.now();
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
     const t = ((now - t0) / 1000) * (reduceMotion ? 0.3 : 1);
+    const life = (now - t0) / 1000;
 
     mouseSmooth.lerp(mouse, 0.06);
     scrollSmooth += (scroll - scrollSmooth) * 0.08;
     pulse *= Math.pow(0.02, dt); // frame-rate independent decay (~1s)
 
     accent.lerp(accentTarget, 0.04);
-    coreUniforms.uColorA.value.copy(accent);
-    shellMat.color.copy(accent);
-    ringMat.color.copy(accent);
+    mainMat.color.copy(accent);
     pUniforms.uColor.value.copy(accent);
+    (headRing.material as THREE.MeshBasicMaterial).color.copy(accent);
+    (headLink.material as THREE.MeshBasicMaterial).color.copy(accent);
 
-    // mouse world point on z=0 plane for particle repulsion + core hover test
+    // mouse world point on z=0 plane for particle repulsion + graph hover test
     raycaster.setFromCamera(mouse, camera);
     if (hasPointer && raycaster.ray.intersectPlane(plane, mouseWorld)) {
       pUniforms.uMouse.value.lerp(mouseWorld, 0.2);
     }
-    overCore = hasPointer && raycaster.intersectObject(core, false).length > 0;
+    overGraph = hasPointer && raycaster.intersectObject(hitBox, false).length > 0;
+    const nodeHit = overGraph ? raycaster.intersectObjects(allNodes, false)[0] : undefined;
+    hovered = (nodeHit?.object as THREE.Mesh | undefined) ?? null;
 
-    // core: rotates, leans toward the mouse, drifts sideways as you scroll down the page
-    coreUniforms.uTime.value = t;
-    coreUniforms.uPulse.value = pulse;
-    const targetDistort = overCore ? 0.6 : 0.32;
-    coreUniforms.uDistort.value += (targetDistort - coreUniforms.uDistort.value) * 0.06;
+    // branches draw themselves in, nodes pop in as the line reaches them
+    branches.forEach((b) => {
+      const p = THREE.MathUtils.clamp((life - b.start) / DRAW_TIME, 0, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const total = b.tube.geometry.index ? b.tube.geometry.index.count : 0;
+      b.tube.geometry.setDrawRange(0, Math.floor(total * eased));
 
-    core.rotation.y += dt * 0.15;
-    shell.rotation.y -= dt * 0.1;
-    shell.rotation.x += dt * 0.05;
-    coreGroup.rotation.x = mouseSmooth.y * 0.35;
-    coreGroup.rotation.y = mouseSmooth.x * 0.5;
+      b.nodes.forEach((n) => {
+        const target = eased >= n.t ? (n.mesh === hovered ? 2.2 : 1 + pulse * 0.6) : 0;
+        const s = n.mesh.scale.x + (target - n.mesh.scale.x) * 0.15;
+        n.mesh.scale.setScalar(s);
+      });
 
-    // scroll choreography: hero → centre/right, sections → off to the side & further back
-    const s = scrollSmooth;
-    const side = isSmall ? 0 : Math.sin(s * Math.PI * 3) * 3.2;
-    const baseX = isSmall ? 0 : 3.4;
-    coreGroup.position.x = THREE.MathUtils.lerp(baseX, side, Math.min(s * 8, 1));
-    coreGroup.position.y = isSmall ? 1.8 - s * 0.5 : 0.2 - s * 0.6;
-    coreGroup.position.z = (isSmall ? -3 : 0) - s * 6;
-    const sc = (isSmall ? 0.75 : 1) * (1 + pulse * 0.35);
-    coreGroup.scale.setScalar(sc);
-
-    nodes.forEach((n) => {
-      const a = n.phase + t * n.speed;
-      n.mesh.position.set(Math.cos(a) * n.r, Math.sin(a) * n.r, 0);
-      n.mesh.rotation.x = t * 2;
-      n.mesh.rotation.y = t * 1.5;
+      // "pushes": small bright packets flowing along finished branches
+      b.packets.forEach((pk) => {
+        pk.mesh.visible = p >= 1;
+        if (!pk.mesh.visible) return;
+        const speed = (b.isMain ? 0.07 : 0.12) * (1 + pulse * 4);
+        pk.offset = (pk.offset + dt * speed) % 1;
+        pk.mesh.position.copy(b.curve.getPointAt(pk.offset));
+      });
     });
-    rings.forEach((r, i) => (r.rotation.z += dt * (0.05 + i * 0.03)));
+
+    const mainDone = life > DRAW_TIME;
+    headLink.visible = mainDone;
+    const headTarget = mainDone ? 1 + Math.sin(t * 2) * 0.08 + pulse * 0.4 : 0;
+    head.scale.setScalar(head.scale.x + (headTarget - head.scale.x) * 0.08);
+    head.rotation.y += dt * 0.6;
+    head.rotation.x = 0.3;
+    headRing.scale.setScalar(head.scale.x * (1 + ((t * 0.6) % 1) * 0.6));
+    (headRing.material as THREE.MeshBasicMaterial).opacity = 0.6 * (1 - ((t * 0.6) % 1));
+
+    // graph sways gently and leans toward the mouse
+    graph.rotation.y = Math.sin(t * 0.15) * 0.25 + mouseSmooth.x * 0.15;
+    graph.rotation.x = mouseSmooth.y * 0.1;
+
+    // scroll choreography: hero → right side, then drifts back as you scroll
+    const s = scrollSmooth;
+    const side = isSmall ? 0 : Math.sin(s * Math.PI * 3) * 3.0;
+    const baseX = isSmall ? 0 : 3.3;
+    graph.position.x = THREE.MathUtils.lerp(baseX, side, Math.min(s * 8, 1));
+    // on phones the graph sits low and further back so it never covers the title
+    graph.position.y = isSmall ? -1.6 - s * 0.5 : 0.1 - s * 0.6;
+    graph.position.z = (isSmall ? -4 : 0) - s * 6;
+    graph.scale.setScalar(isSmall ? 0.62 : 0.78);
+
+    snippets.forEach((sn) => {
+      sn.sprite.position.y += dt * sn.speed;
+      if (sn.sprite.position.y > 8) sn.sprite.position.y = -8;
+      sn.sprite.position.x = sn.baseX + Math.sin(t * 0.2 + sn.phase) * 0.4;
+    });
 
     // camera: subtle parallax from mouse
-    tmpVec.set(mouseSmooth.x * 0.6, 0.4 + mouseSmooth.y * 0.4 - s * 1.5, 9);
+    tmpVec.set(mouseSmooth.x * 0.25, 0.4 + mouseSmooth.y * 0.15 - s * 1.5, 9);
     camera.position.lerp(tmpVec, 0.08);
     camera.lookAt(0, -s * 1.5, 0);
 
     pUniforms.uTime.value = t;
     pUniforms.uScroll.value = s;
-
     gridUniforms.uTime.value = t;
-    gridUniforms.uSpeed.value = 1.2 + s * 6 + pulse * 10;
-    sunMat.uniforms.uTime.value = t;
+    gridUniforms.uSpeed.value = 0.8 + s * 2 + pulse * 2;
 
     composer.render();
     requestAnimationFrame(tick);
@@ -431,7 +460,7 @@ export function createScene(canvas: HTMLCanvasElement): SceneApi {
       pulse = 1;
     },
     isPointerOverCore() {
-      return overCore;
+      return overGraph;
     },
   };
   return api;

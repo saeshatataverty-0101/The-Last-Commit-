@@ -82,7 +82,7 @@ export function initCursor(onMove?: (x: number, y: number) => void) {
   window.addEventListener("resize", resize);
 
   const pts: { x: number; y: number; life: number }[] = [];
-  const MAX = 26;
+  const MAX = 12;
 
   // ---------- magnetic elements ----------
   const magnets = Array.from(document.querySelectorAll<HTMLElement>(".magnetic"));
@@ -92,8 +92,8 @@ export function initCursor(onMove?: (x: number, y: number) => void) {
       const r = m.getBoundingClientRect();
       const dx = e.clientX - (r.left + r.width / 2);
       const dy = e.clientY - (r.top + r.height / 2);
-      m.style.transform = `translate(${dx * 0.25}px, ${dy * 0.35}px)`;
-      inner.style.transform = `translate(${dx * 0.12}px, ${dy * 0.15}px)`;
+      m.style.transform = `translate(${dx * 0.12}px, ${dy * 0.18}px)`;
+      inner.style.transform = `translate(${dx * 0.06}px, ${dy * 0.08}px)`;
     });
     m.addEventListener("pointerleave", () => {
       m.style.transition = "transform .6s cubic-bezier(.22,1,.36,1)";
@@ -110,25 +110,25 @@ export function initCursor(onMove?: (x: number, y: number) => void) {
   const styles = getComputedStyle(document.body);
 
   function loop() {
-    rx = lerp(rx, mx, 0.18);
-    ry = lerp(ry, my, 0.18);
+    rx = lerp(rx, mx, 0.3);
+    ry = lerp(ry, my, 0.3);
     ring.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
 
     pts.push({ x: mx, y: my, life: 1 });
     if (pts.length > MAX) pts.shift();
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const cyan = styles.getPropertyValue("--cyan").trim() || "#00f0ff";
+    const cyan = styles.getPropertyValue("--neon").trim() || "#00ff66";
     for (let i = 1; i < pts.length; i++) {
       const p0 = pts[i - 1];
       const p1 = pts[i];
       const k = i / pts.length;
       ctx.strokeStyle = cyan;
-      ctx.globalAlpha = k * 0.55;
-      ctx.lineWidth = k * 3;
+      ctx.globalAlpha = k * 0.25;
+      ctx.lineWidth = k * 2;
       ctx.lineCap = "round";
       ctx.shadowColor = cyan;
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 4;
       ctx.beginPath();
       ctx.moveTo(p0.x, p0.y);
       ctx.lineTo(p1.x, p1.y);
