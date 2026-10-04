@@ -2,3 +2,6 @@ node_modules
 dist
 .DS_Store
 *.log
+
+# single-file preview build (generated, not source)
+the-last-commit.html
