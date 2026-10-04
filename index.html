@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#05060a" />
+    <meta
+      name="description"
+      content="THE LAST COMMIT — a 48-hour cyberpunk hackathon. The global repository freezes forever. Push the final commit before the timeline locks."
+    />
+    <title>The Last Commit — 48H Hackathon</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="is-loading">
+    <!-- ================= BOOT SEQUENCE ================= -->
+    <div id="boot" aria-live="polite">
+      <div class="boot__inner">
+        <pre class="boot__log" id="bootLog"></pre>
+        <div class="boot__bar"><span id="bootBar"></span></div>
+        <div class="boot__meta">
+          <span>LAST_COMMIT.OS v4.8.2</span>
+          <span id="bootPct">000%</span>
+        </div>
+        <button class="boot__start" id="bootStart" hidden>
+          <span>[ PRESS START ]</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= GLOBAL FX LAYERS ================= -->
+    <canvas id="webgl" aria-hidden="true"></canvas>
+    <canvas id="trail" aria-hidden="true"></canvas>
+    <div class="scanlines" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+    <div class="cursor" aria-hidden="true">
+      <div class="cursor__ring"><span class="cursor__label"></span></div>
+      <div class="cursor__dot"></div>
+    </div>
+
+    <!-- ================= HUD ================= -->
+    <header class="hud">
+      <a href="#hero" class="hud__logo" data-cursor="home">
+        <span class="hud__logo-mark">&lt;/&gt;</span>
+        <span>T.L.C</span>
+      </a>
+      <nav class="hud__nav" aria-label="Primary">
+        <a href="#mission" data-scramble>Mission</a>
+        <a href="#classes" data-scramble>Classes</a>
+        <a href="#quests" data-scramble>Quest Log</a>
+        <a href="#loot" data-scramble>Loot</a>
+        <a href="#intel" data-scramble>Intel</a>
+      </nav>
+      <a href="#join" class="btn btn--small magnetic" data-cursor="join">
+        <span>Join_Game</span>
+      </a>
+      <button class="hud__menu" id="menuBtn" aria-label="Open menu" aria-expanded="false">
+        <span></span><span></span>
+      </button>
+    </header>
+    <div class="mobile-nav" id="mobileNav">
+      <a href="#mission">Mission</a>
+      <a href="#classes">Classes</a>
+      <a href="#quests">Quest Log</a>
+      <a href="#loot">Loot</a>
+      <a href="#intel">Intel</a>
+      <a href="#join">Join Game</a>
+    </div>
+
+    <div class="progress" aria-hidden="true">
+      <div class="progress__fill" id="progressFill"></div>
+      <span class="progress__label" id="progressLabel">SYNC 00%</span>
+    </div>
+
+    <aside class="side-hud" aria-hidden="true">
+      <div class="side-hud__row"><span>FPS</span><b id="fps">60</b></div>
+      <div class="side-hud__row"><span>X</span><b id="hudX">0000</b></div>
+      <div class="side-hud__row"><span>Y</span><b id="hudY">0000</b></div>
+      <div class="side-hud__row"><span>SEC</span><b id="hudSec">BOOT</b></div>
+    </aside>
+
+    <main id="smooth">
+      <!-- ================= HERO ================= -->
+      <section id="hero" class="hero" data-section="BOOT">
+        <div class="hero__tag reveal-up">
+          <span class="blink">●</span> LIVE TRANSMISSION · 21–23 NOV 2026 · NEO-BENGALURU GRID
+        </div>
+        <h1 class="hero__title" aria-label="The Last Commit">
+          <span class="hero__line glitch" data-text="THE LAST">THE LAST</span>
+          <span class="hero__line hero__line--accent glitch" data-text="COMMIT">COMMIT</span>
+        </h1>
+        <p class="hero__sub reveal-up">
+          <span class="mono">$ git push origin main --final</span><br />
+          The global repository freezes in <b>48 hours</b>. One push left. Make it legendary.
+        </p>
+
+        <div class="countdown reveal-up" id="countdown" aria-label="Countdown to hackathon start">
+          <div class="countdown__cell"><b data-cd="d">00</b><span>DAYS</span></div>
+          <i>:</i>
+          <div class="countdown__cell"><b data-cd="h">00</b><span>HRS</span></div>
+          <i>:</i>
+          <div class="countdown__cell"><b data-cd="m">00</b><span>MIN</span></div>
+          <i>:</i>
+          <div class="countdown__cell"><b data-cd="s">00</b><span>SEC</span></div>
+        </div>
+
+        <div class="hero__cta reveal-up">
+          <a href="#join" class="btn btn--primary magnetic" data-cursor="play">
+            <span>▶ Insert Coin</span>
+          </a>
+          <a href="#mission" class="btn btn--ghost magnetic" data-cursor="read">
+            <span>Read Briefing</span>
+          </a>
+        </div>
+
+        <div class="hero__stats reveal-up">
+          <div><b data-count="48">0</b><span>Hours</span></div>
+          <div><b data-count="1200" data-suffix="+">0</b><span>Players</span></div>
+          <div><b data-count="15" data-prefix="₹" data-suffix="L">0</b><span>Loot Pool</span></div>
+          <div><b data-count="6">0</b><span>Classes</span></div>
+        </div>
+
+        <div class="hero__scroll" aria-hidden="true">
+          <span>SCROLL TO DESCEND</span>
+          <i></i>
+        </div>
+      </section>
+
+      <!-- ================= MARQUEE ================= -->
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee__track">
+          <span>git commit -m "save the world"</span><span>✦</span>
+          <span>48H NON-STOP</span><span>✦</span>
+          <span>NO SAVE POINTS</span><span>✦</span>
+          <span>MERGE OR DIE</span><span>✦</span>
+          <span>HEAD → DETACHED</span><span>✦</span>
+          <span>git commit -m "save the world"</span><span>✦</span>
+          <span>48H NON-STOP</span><span>✦</span>
+          <span>NO SAVE POINTS</span><span>✦</span>
+          <span>MERGE OR DIE</span><span>✦</span>
+          <span>HEAD → DETACHED</span><span>✦</span>
+        </div>
+      </div>
+
+      <!-- ================= MISSION ================= -->
+      <section id="mission" class="section mission" data-section="MISSION">
+        <div class="section__head">
+          <span class="section__index">01 //</span>
+          <h2 class="section__title" data-scramble-on-view>MISSION_BRIEFING</h2>
+        </div>
+
+        <div class="mission__grid">
+          <div class="mission__story">
+            <p class="split-reveal">
+              Year 2099. Every line of code humanity ever wrote lives in one place — the Global Repository.
+              At 00:00 on the final night, the Archivists will lock it forever. Read-only. No more pull requests.
+              No more patches. No more second chances.
+            </p>
+            <p class="split-reveal">
+              You and your squad have 48 hours to ship the commit that defines what the future runs on.
+              Build it. Break it. Push it. Whatever lands on <span class="hl">main</span> before the freeze becomes history.
+            </p>
+          </div>
+
+          <div class="mission__panel tilt" data-tilt>
+            <div class="panel__head">
+              <span>// OBJECTIVES</span><span class="blink">REC</span>
+            </div>
+            <ul class="objectives">
+              <li><i>01</i> Form a squad of 2–4 operators</li>
+              <li><i>02</i> Pick a class &amp; claim a problem node</li>
+              <li><i>03</i> Ship a working build in 48h</li>
+              <li><i>04</i> Survive 3 boss-fight checkpoints</li>
+              <li><i>05</i> Push the last commit before 00:00</li>
+            </ul>
+            <div class="panel__foot">
+              <span>THREAT LEVEL</span>
+              <div class="meter"><span style="--v: 0.86"></span></div>
+              <b>CRITICAL</b>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= CLASSES / TRACKS ================= -->
+      <section id="classes" class="section classes" data-section="CLASSES">
+        <div class="section__head">
+          <span class="section__index">02 //</span>
+          <h2 class="section__title" data-scramble-on-view>SELECT_YOUR_CLASS</h2>
+          <p class="section__desc">Six tracks. Each one is a playstyle. Hover to inspect, click to lock in.</p>
+        </div>
+
+        <div class="class-grid">
+          <article class="class-card tilt" data-tilt data-class="Netrunner" style="--c: #00f0ff">
+            <div class="class-card__glare"></div>
+            <div class="class-card__top"><span>CLASS_01</span><span>★★★★☆</span></div>
+            <div class="class-card__icon">⌬</div>
+            <h3>NETRUNNER</h3>
+            <p>AI &amp; Machine Learning. Train models that think faster than the freeze.</p>
+            <div class="class-card__stats">
+              <div><span>INT</span><i style="--v: .95"></i></div>
+              <div><span>SPD</span><i style="--v: .6"></i></div>
+              <div><span>DEF</span><i style="--v: .4"></i></div>
+            </div>
+            <button class="class-card__pick" data-cursor="lock">LOCK IN</button>
+          </article>
+
+          <article class="class-card tilt" data-tilt data-class="Chainbreaker" style="--c: #ff2bd6">
+            <div class="class-card__glare"></div>
+            <div class="class-card__top"><span>CLASS_02</span><span>★★★★★</span></div>
+            <div class="class-card__icon">⛓</div>
+            <h3>CHAINBREAKER</h3>
+            <p>Web3 &amp; Decentralization. Build what the Archivists can't censor.</p>
+            <div class="class-card__stats">
+              <div><span>INT</span><i style="--v: .8"></i></div>
+              <div><span>SPD</span><i style="--v: .5"></i></div>
+              <div><span>DEF</span><i style="--v: .9"></i></div>
+            </div>
+            <button class="class-card__pick" data-cursor="lock">LOCK IN</button>
+          </article>
+
+          <article class="class-card tilt" data-tilt data-class="Ghost" style="--c: #b6ff3b">
+            <div class="class-card__glare"></div>
+            <div class="class-card__top"><span>CLASS_03</span><span>★★★★☆</span></div>
+            <div class="class-card__icon">◈</div>
+            <h3>GHOST</h3>
+            <p>Cybersecurity. Defend the repo. Find the exploit before they do.</p>
+            <div class="class-card__stats">
+              <div><span>INT</span><i style="--v: .85"></i></div>
+              <div><span>SPD</span><i style="--v: .75"></i></div>
+              <div><span>DEF</span><i style="--v: 1"></i></div>
+            </div>
+            <button class="class-card__pick" data-cursor="lock">LOCK IN</button>
+          </article>
+
+          <article class="class-card tilt" data-tilt data-class="Architect" style="--c: #ffb800">
+            <div class="class-card__glare"></div>
+            <div class="class-card__top"><span>CLASS_04</span><span>★★★☆☆</span></div>
+            <div class="class-card__icon">⬡</div>
+            <h3>ARCHITECT</h3>
+            <p>Web &amp; Mobile. Craft the interfaces the last humans will touch.</p>
+            <div class="class-card__stats">
+              <div><span>INT</span><i style="--v: .7"></i></div>
+              <div><span>SPD</span><i style="--v: .95"></i></div>
+              <div><span>DEF</span><i style="--v: .55"></i></div>
+            </div>
+            <button class="class-card__pick" data-cursor="lock">LOCK IN</button>
+          </article>
+
+          <article class="class-card tilt" data-tilt data-class="Terraformer" style="--c: #4dffb8">
+            <div class="class-card__glare"></div>
+            <div class="class-card__top"><span>CLASS_05</span><span>★★★★☆</span></div>
+            <div class="class-card__icon">✺</div>
+            <h3>TERRAFORMER</h3>
+            <p>Climate &amp; Sustainability. Patch the planet before the deadline.</p>
+            <div class="class-card__stats">
+              <div><span>INT</span><i style="--v: .75"></i></div>
+              <div><span>SPD</span><i style="--v: .5"></i></div>
+              <div><span>DEF</span><i style="--v: .8"></i></div>
+            </div>
+            <button class="class-card__pick" data-cursor="lock">LOCK IN</button>
+          </article>
+
+          <article class="class-card tilt" data-tilt data-class="Wildcard" style="--c: #a77bff">
+            <div class="class-card__glare"></div>
+            <div class="class-card__top"><span>CLASS_06</span><span>?????</span></div>
+            <div class="class-card__icon">⁂</div>
+            <h3>WILDCARD</h3>
+            <p>Open Innovation. No rules. Surprise the judges. Break the meta.</p>
+            <div class="class-card__stats">
+              <div><span>INT</span><i style="--v: .6"></i></div>
+              <div><span>SPD</span><i style="--v: .9"></i></div>
+              <div><span>DEF</span><i style="--v: .3"></i></div>
+            </div>
+            <button class="class-card__pick" data-cursor="lock">LOCK IN</button>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================= QUEST LOG (horizontal) ================= -->
+      <section id="quests" class="quests" data-section="QUESTS">
+        <div class="quests__pin">
+          <div class="section__head quests__head">
+            <span class="section__index">03 //</span>
+            <h2 class="section__title" data-scramble-on-view>QUEST_LOG</h2>
+            <p class="section__desc">48 hours. 8 checkpoints. Scroll to advance the timeline.</p>
+          </div>
+          <div class="quests__track" id="questTrack">
+            <div class="quests__line"><span id="questLineFill"></span></div>
+
+            <div class="quest">
+              <span class="quest__time">DAY 0 · 18:00</span>
+              <span class="quest__lvl">LVL 00</span>
+              <h3>Spawn Point</h3>
+              <p>Check-in, collect your loadout (swag, badge, caffeine), and meet your squad.</p>
+            </div>
+            <div class="quest">
+              <span class="quest__time">DAY 1 · 09:00</span>
+              <span class="quest__lvl">LVL 01</span>
+              <h3>Opening Cinematic</h3>
+              <p>Keynote, lore drop, and the problem nodes go live on the big screen.</p>
+            </div>
+            <div class="quest">
+              <span class="quest__time">DAY 1 · 10:00</span>
+              <span class="quest__lvl">LVL 02</span>
+              <h3>git init</h3>
+              <p>The clock starts. First commit timestamps are recorded on-chain.</p>
+            </div>
+            <div class="quest quest--boss">
+              <span class="quest__time">DAY 1 · 22:00</span>
+              <span class="quest__lvl">BOSS 01</span>
+              <h3>The Code Review</h3>
+              <p>Mentors raid your repo. Defend your architecture or respawn.</p>
+            </div>
+            <div class="quest">
+              <span class="quest__time">DAY 2 · 03:00</span>
+              <span class="quest__lvl">LVL 03</span>
+              <h3>Midnight Side-Quests</h3>
+              <p>Speedrun challenges, CTF mini-games, and a 3AM ramen drop.</p>
+            </div>
+            <div class="quest quest--boss">
+              <span class="quest__time">DAY 2 · 14:00</span>
+              <span class="quest__lvl">BOSS 02</span>
+              <h3>Merge Conflict</h3>
+              <p>Random twist mutator gets injected into every project. Adapt.</p>
+            </div>
+            <div class="quest quest--final">
+              <span class="quest__time">DAY 3 · 00:00</span>
+              <span class="quest__lvl">FINAL</span>
+              <h3>The Last Commit</h3>
+              <p>Repository locks. Anything not on main is lost forever.</p>
+            </div>
+            <div class="quest">
+              <span class="quest__time">DAY 3 · 11:00</span>
+              <span class="quest__lvl">LVL ∞</span>
+              <h3>Hall of Fame</h3>
+              <p>Demos, judging, and the loot ceremony. Credits roll.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= LOOT / PRIZES ================= -->
+      <section id="loot" class="section loot" data-section="LOOT">
+        <div class="section__head">
+          <span class="section__index">04 //</span>
+          <h2 class="section__title" data-scramble-on-view>LOOT_TABLE</h2>
+          <p class="section__desc">Rarity-tiered drops. Drag the crystals. Yes, they spin.</p>
+        </div>
+
+        <div class="loot__grid">
+          <div class="loot-card loot-card--epic reveal-card">
+            <div class="crystal" data-drag><div class="crystal__inner">
+              <i></i><i></i><i></i><i></i><i></i><i></i>
+            </div></div>
+            <span class="rarity">EPIC DROP</span>
+            <h3>2nd Place</h3>
+            <b class="loot-card__amount" data-count="300000" data-prefix="₹">0</b>
+            <p>+ Mechanical keyboards, mentor sessions, cloud credits</p>
+          </div>
+          <div class="loot-card loot-card--legendary reveal-card">
+            <div class="crystal crystal--big" data-drag><div class="crystal__inner">
+              <i></i><i></i><i></i><i></i><i></i><i></i>
+            </div></div>
+            <span class="rarity">LEGENDARY DROP</span>
+            <h3>1st Place</h3>
+            <b class="loot-card__amount" data-count="500000" data-prefix="₹">0</b>
+            <p>+ Incubation fast-track, VR rigs, Hall of Fame plaque</p>
+          </div>
+          <div class="loot-card loot-card--rare reveal-card">
+            <div class="crystal" data-drag><div class="crystal__inner">
+              <i></i><i></i><i></i><i></i><i></i><i></i>
+            </div></div>
+            <span class="rarity">RARE DROP</span>
+            <h3>3rd Place</h3>
+            <b class="loot-card__amount" data-count="150000" data-prefix="₹">0</b>
+            <p>+ Hardware kits, swag crates, interview fast-pass</p>
+          </div>
+        </div>
+
+        <div class="side-loot">
+          <div class="side-loot__item"><span>◆</span> Best Class Winner ×6 — ₹50K each</div>
+          <div class="side-loot__item"><span>◆</span> Speedrun Award — first working demo</div>
+          <div class="side-loot__item"><span>◆</span> Glitch Award — most creative bug turned feature</div>
+          <div class="side-loot__item"><span>◆</span> Last-Second Push — commit closest to 00:00:00</div>
+        </div>
+      </section>
+
+      <!-- ================= ARSENAL / SPONSORS ================= -->
+      <section id="arsenal" class="section arsenal" data-section="ALLIES">
+        <div class="section__head">
+          <span class="section__index">05 //</span>
+          <h2 class="section__title" data-scramble-on-view>ALLIED_FACTIONS</h2>
+          <p class="section__desc">The guilds powering the resistance.</p>
+        </div>
+        <div class="allies">
+          <div class="ally magnetic"><span>NEON//LABS</span></div>
+          <div class="ally magnetic"><span>QUANTA</span></div>
+          <div class="ally magnetic"><span>VOIDSTACK</span></div>
+          <div class="ally magnetic"><span>HEXFORGE</span></div>
+          <div class="ally magnetic"><span>CHERRY_NET</span></div>
+          <div class="ally magnetic"><span>BYTEWAVE</span></div>
+          <div class="ally magnetic"><span>KERNEL.IO</span></div>
+          <div class="ally magnetic"><span>SYNTHAX</span></div>
+        </div>
+      </section>
+
+      <!-- ================= INTEL / FAQ ================= -->
+      <section id="intel" class="section intel" data-section="INTEL">
+        <div class="section__head">
+          <span class="section__index">06 //</span>
+          <h2 class="section__title" data-scramble-on-view>DECRYPTED_INTEL</h2>
+        </div>
+        <div class="faq">
+          <details class="faq__item">
+            <summary data-cursor="open"><span>&gt; Who can enter the game?</span><i>+</i></summary>
+            <p>Any student or self-taught dev, 16+. Beginners welcome — every class has a tutorial zone and mentors on comms.</p>
+          </details>
+          <details class="faq__item">
+            <summary data-cursor="open"><span>&gt; What does it cost?</span><i>+</i></summary>
+            <p>Zero credits. Entry is free. Food, energy drinks, Wi-Fi, and nap pods are on the house.</p>
+          </details>
+          <details class="faq__item">
+            <summary data-cursor="open"><span>&gt; Can I play solo?</span><i>+</i></summary>
+            <p>Squads are 2–4 operators. Solo? Hit the matchmaking lobby on Day 0 and we'll party you up.</p>
+          </details>
+          <details class="faq__item">
+            <summary data-cursor="open"><span>&gt; Can I start coding before the event?</span><i>+</i></summary>
+            <p>No pre-built code. Every repo is created at <code>git init</code> and audited. Ideas &amp; designs are fine.</p>
+          </details>
+          <details class="faq__item">
+            <summary data-cursor="open"><span>&gt; What should I bring?</span><i>+</i></summary>
+            <p>Laptop, charger, ID, and the will to survive 48 hours. Sleeping bag optional but strongly recommended.</p>
+          </details>
+        </div>
+      </section>
+
+      <!-- ================= JOIN / REGISTER ================= -->
+      <section id="join" class="section join" data-section="JOIN">
+        <div class="section__head">
+          <span class="section__index">07 //</span>
+          <h2 class="section__title" data-scramble-on-view>CREATE_PLAYER</h2>
+          <p class="section__desc">Three steps to enter the arena. Your player card generates live.</p>
+        </div>
+
+        <div class="join__grid">
+          <form class="reg" id="regForm" novalidate>
+            <div class="reg__steps">
+              <span class="is-active" data-step-dot="0">01 IDENTITY</span>
+              <span data-step-dot="1">02 LOADOUT</span>
+              <span data-step-dot="2">03 CONFIRM</span>
+            </div>
+
+            <fieldset class="reg__step is-active" data-step="0">
+              <label class="field">
+                <span>PLAYER_NAME</span>
+                <input name="name" type="text" placeholder="Ada Lovelace" autocomplete="name" required minlength="2" />
+                <em class="field__err"></em>
+              </label>
+              <label class="field">
+                <span>GAMERTAG</span>
+                <input name="tag" type="text" placeholder="null_pointer" required pattern="[A-Za-z0-9_\-]{3,16}" />
+                <em class="field__err"></em>
+              </label>
+              <label class="field">
+                <span>COMMS_CHANNEL (EMAIL)</span>
+                <input name="email" type="email" placeholder="ada@grid.net" autocomplete="email" required />
+                <em class="field__err"></em>
+              </label>
+              <label class="field">
+                <span>GUILD (COLLEGE / ORG)</span>
+                <input name="org" type="text" placeholder="Neo-Bengaluru Institute" required />
+                <em class="field__err"></em>
+              </label>
+            </fieldset>
+
+            <fieldset class="reg__step" data-step="1">
+              <div class="field">
+                <span>CLASS</span>
+                <div class="chips" id="classChips">
+                  <label><input type="radio" name="class" value="Netrunner" checked /><b>Netrunner</b></label>
+                  <label><input type="radio" name="class" value="Chainbreaker" /><b>Chainbreaker</b></label>
+                  <label><input type="radio" name="class" value="Ghost" /><b>Ghost</b></label>
+                  <label><input type="radio" name="class" value="Architect" /><b>Architect</b></label>
+                  <label><input type="radio" name="class" value="Terraformer" /><b>Terraformer</b></label>
+                  <label><input type="radio" name="class" value="Wildcard" /><b>Wildcard</b></label>
+                </div>
+              </div>
+              <div class="field">
+                <span>SKILL_LEVEL <b id="lvlOut">LVL 3</b></span>
+                <input name="level" type="range" min="1" max="5" value="3" class="range" />
+                <div class="range__labels"><i>NOOB</i><i>MID</i><i>LEGEND</i></div>
+              </div>
+              <div class="field">
+                <span>SQUAD_SIZE</span>
+                <div class="chips chips--small">
+                  <label><input type="radio" name="squad" value="Solo (matchmake me)" checked /><b>Solo</b></label>
+                  <label><input type="radio" name="squad" value="2" /><b>2</b></label>
+                  <label><input type="radio" name="squad" value="3" /><b>3</b></label>
+                  <label><input type="radio" name="squad" value="4" /><b>4</b></label>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="reg__step" data-step="2">
+              <div class="confirm" id="confirmBox"></div>
+              <label class="check">
+                <input type="checkbox" name="rules" required />
+                <span>I accept the Code of Conduct and swear no pre-written code.</span>
+              </label>
+              <em class="field__err" id="rulesErr"></em>
+            </fieldset>
+
+            <div class="reg__nav">
+              <button type="button" class="btn btn--ghost" id="prevBtn" disabled><span>◀ Back</span></button>
+              <button type="button" class="btn btn--primary" id="nextBtn" data-cursor="next"><span>Next ▶</span></button>
+            </div>
+
+            <div class="reg__done" id="regDone" hidden>
+              <h3 class="glitch" data-text="PLAYER REGISTERED">PLAYER REGISTERED</h3>
+              <p class="mono" id="commitHash"></p>
+              <p>Your slot is locked. Watch your comms channel for the boarding pass.</p>
+              <button type="button" class="btn btn--ghost" id="resetBtn"><span>Register another</span></button>
+            </div>
+          </form>
+
+          <div class="id-wrap">
+            <div class="id-card tilt" data-tilt id="idCard">
+              <div class="class-card__glare"></div>
+              <div class="id-card__head">
+                <span>THE LAST COMMIT</span>
+                <span>PLAYER ID</span>
+              </div>
+              <div class="id-card__body">
+                <div class="id-card__avatar" id="idAvatar"></div>
+                <div class="id-card__info">
+                  <b id="idName">UNKNOWN PLAYER</b>
+                  <span id="idTag">@null</span>
+                  <span id="idOrg">NO GUILD</span>
+                </div>
+              </div>
+              <div class="id-card__row">
+                <div><span>CLASS</span><b id="idClass">NETRUNNER</b></div>
+                <div><span>LEVEL</span><b id="idLvl">03</b></div>
+                <div><span>SQUAD</span><b id="idSquad">SOLO</b></div>
+              </div>
+              <div class="id-card__barcode" id="idBarcode"></div>
+              <div class="id-card__foot">
+                <span id="idHash">#0000000</span>
+                <span>21.11.2026 · GRID-07</span>
+              </div>
+            </div>
+            <p class="id-wrap__hint">↖ move your cursor over the card</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= FOOTER TERMINAL ================= -->
+      <footer class="footer" data-section="EXIT">
+        <div class="term" id="term">
+          <div class="term__bar">
+            <i></i><i></i><i></i>
+            <span>guest@last-commit:~</span>
+          </div>
+          <div class="term__out" id="termOut"></div>
+          <form class="term__in" id="termForm" autocomplete="off">
+            <span>guest@tlc:~$</span>
+            <input id="termInput" type="text" spellcheck="false" aria-label="Terminal input" placeholder="type 'help'" />
+          </form>
+        </div>
+
+        <div class="footer__big" aria-hidden="true">
+          <span>THE LAST COMMIT</span>
+        </div>
+        <div class="footer__row">
+          <span>© 2026 THE LAST COMMIT · A CHERRY NETWORK EVENT</span>
+          <span>Psst… try the Konami code ↑↑↓↓←→←→BA</span>
+          <a href="#hero" class="magnetic" data-cursor="top">▲ Back to spawn</a>
+        </div>
+      </footer>
+    </main>
+
+    <div class="toast" id="toast" role="status"></div>
+    <div class="godmode" id="godmode" aria-hidden="true"><span>GOD MODE ENABLED</span></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
